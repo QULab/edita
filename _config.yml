@@ -1,7 +1,7 @@
 title: Meine Webseite
 description: Meine erste Jerkyll Webseite
-url: "https://huangj98.github.io"
-baseurl: "/Webseite"
+url: "https://qulab.github.io"
+baseurl: "/edita"
 # Beiträge für "Aktuelles": ein Ordner pro Beitrag in _aktuelles/ (beitrag.md + Bild)
 # Datum, Adresse und Bild setzt _plugins/aktuelles.rb automatisch
 collections:
