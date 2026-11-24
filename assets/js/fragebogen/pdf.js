@@ -326,7 +326,7 @@ function dokumentBauen(teile, logoSvg, kopfzeile, foerderung, partnerLogos) {
             neueSeite = inhalt.length > 0;      // nicht vor dem allerersten Baustein
             return;
         }
-        const start = inhalt.length;
+        let start = inhalt.length;
 
         switch (t.typ) {
 
@@ -397,6 +397,16 @@ function dokumentBauen(teile, logoSvg, kopfzeile, foerderung, partnerLogos) {
         case "likert": {
             const T = STIL.aussagen_tabelle;
 
+            // Steht direkt vor der Tabelle eine Überschrift, wird sie die oberste Kopfzeile der Tabelle.
+            // So wiederholt sie sich mit der Skala auf jeder Folgeseite.
+            let ueberschrift = null;
+            if (index > 0 && teile[index - 1].typ === "ueberschrift" && inhalt.length) {
+                ueberschrift = inhalt.pop();
+                if (ueberschrift.pageBreak === "before") neueSeite = true;   // Seitenumbruch bleibt erhalten
+                start = inhalt.length;
+            }
+            const vorKopf = ueberschrift ? 1 : 0;    // Anzahl Zeilen über dem Skalenkopf
+
             // Spaltenbreiten: Bei vielen Skalen-Stufen werden die Skalen-Spalten schmaler,
             // damit für den Text mindestens "text_mindestbreite" bleibt.
             const anzahl  = t.skala.length;
@@ -466,14 +476,19 @@ function dokumentBauen(teile, logoSvg, kopfzeile, foerderung, partnerLogos) {
             inhalt.push({
                 margin: [0, T.abstand_oben, 0, T.abstand_unten],
                 table: {
-                    headerRows: 1,                 // Kopf wiederholt sich auf jeder Seite
+                    headerRows: 1 + vorKopf,       // Überschrift + Skalenkopf wiederholen sich auf jeder Seite
                     dontBreakRows: true,
                     widths: ["*"].concat(t.skala.map(() => spalte)),
-                    body: [kopf].concat(zeilen)
+                    body: (ueberschrift
+                        ? [[{ text: ueberschrift.text, style: "ueberschrift", colSpan: anzahl + 1,
+                              alignment: "left", margin: [0, 0, 0, 0] }]
+                              .concat(t.skala.map(() => ({})))]
+                        : []).concat([kopf]).concat(zeilen)
                 },
                 layout: {
-                    hLineWidth: (i) => (i === 0 ? 0 : i === 1 ? T.linie_kopf.staerke : T.linie_zeilen.staerke),
-                    hLineColor: (i) => farbe(i === 1 ? T.linie_kopf.farbe : T.linie_zeilen.farbe),
+                    // Linie unter dem Skalenkopf = Linie Nr. 1 + vorKopf; über der Überschrift und zwischen Überschrift und Skala keine
+                    hLineWidth: (i) => (i <= vorKopf ? 0 : i === 1 + vorKopf ? T.linie_kopf.staerke : T.linie_zeilen.staerke),
+                    hLineColor: (i) => farbe(i === 1 + vorKopf ? T.linie_kopf.farbe : T.linie_zeilen.farbe),
                     vLineWidth: () => 0,             // Trennstrich zeichnen wir selbst (siehe oben)
                     // erste/letzte Spalte ohne Innenabstand: Text steht auf der Linie des Seitenrands
                     paddingLeft:  (i) => (i === 0 ? 0 : 2),
